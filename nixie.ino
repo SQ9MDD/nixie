@@ -255,25 +255,27 @@ void setup(){
 void loop(){
   //obsluga klawisza dodawania minut
   if(digitalRead(minute_add_pin) == LOW){
-    delay(100);
+    delay(50);
     if(digitalRead(minute_add_pin) == LOW){
       minute++;
       if(minute >= 60){
         minute = 0;
       }
       show_minute();
+      delay(200);
     }
   }
 
   //obsługa klawisza dodawania godzin
   if(digitalRead(hr_add_pin) == LOW){
-    delay(100);
+    delay(50);
     if(digitalRead(hr_add_pin) == LOW){
       hr++;
       if(hr >= 24){
         hr = 0; 
       }
       show_hr();
+      delay(200);
     }
   }
 
