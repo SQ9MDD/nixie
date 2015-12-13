@@ -8,9 +8,10 @@
  pierwsza cyfra dziesiątki godzin zakres 0-2 2bity
 
  CHANGELOG 
- 2015.12.13 Testy zadziałania
+ 2015.12.13 Testy zadziałania, ustawianie godzin
  2014.12.14 Pierwsza wersja programu naliczanie minutowe.
 */
+#define version 1.1                   //wersja softu
 int minute = 0;                       //zmienna przechowuje minuty
 int hr = 0;                           //zmienna przechowuje godziny
 long time_to_tick = millis();         //zmienna z czasem odpalenia funkcji naliczania czasu
@@ -28,6 +29,8 @@ const int s_hr_c = 11;                 //druga cyfra trzeci bit
 const int s_hr_d = 12;                 //druga cyfra najstarszy bit
 const int p_hr_a = 13;                 //pierwsza cyfra pierwszy bit
 const int p_hr_b = A0;                 //pierwsza cyfra drugi bit
+const int minute_add_pin = A1;         //wejscie do ustawiania minut
+const int hr_add_pin = A2;             //wejscie do ustawiania godzin
 
 //obsługa wyświetlania minut
 void show_minute(){
@@ -238,15 +241,43 @@ void setup(){
   pinMode(s_hr_c,OUTPUT);
   pinMode(s_hr_d,OUTPUT);
   pinMode(p_hr_a,OUTPUT);
-  pinMode(p_hr_b,OUTPUT); 
+  pinMode(p_hr_b,OUTPUT);
+  pinMode(minute_add_pin, INPUT_PULLUP); 
+  pinMode(hr_add_pin, INPUT_PULLUP);
 
   //
   show_hr();     
-  show_minute();  
+  show_minute(); 
+  time_to_tick = millis() + 60000; 
 }
 
 //pętla główna tutaj naliczamy czas, naliczanie minutowe
 void loop(){
+  //obsluga klawisza dodawania minut
+  if(digitalRead(minute_add_pin) == LOW){
+    delay(100);
+    if(digitalRead(minute_add_pin) == LOW){
+      minute++;
+      if(minute >= 60){
+        minute = 0;
+      }
+      show_minute();
+    }
+  }
+
+  //obsługa klawisza dodawania godzin
+  if(digitalRead(hr_add_pin) == LOW){
+    delay(100);
+    if(digitalRead(hr_add_pin) == LOW){
+      hr++;
+      if(hr >= 24){
+        hr = 0; 
+      }
+      show_hr();
+    }
+  }
+
+  //naliczanie czasu
   if(millis() >= time_to_tick){    
      time_to_tick = millis() + 60000;  //ma być 60000
      minute++;
