@@ -8,7 +8,7 @@
  pierwsza cyfra dziesiątki godzin zakres 0-2 2bity
 
  CHANGELOG 
- 2016.07.02 Dodanie obsługi RTC pierwsza wersja alpha
+ 2016.07.02 Dodanie obsługi RTC, czyszczenie kodu
  2015.12.13 Testy zadziałania, ustawianie godzin
  2014.12.14 Pierwsza wersja programu naliczanie minutowe.
 */
@@ -48,10 +48,6 @@ RTC_DS1307 RTC;
 void show_min(){
  int p_min = mins / 10;                //wyliczam dziesiątki minut
  int s_min = mins % 10;                //wyliczam minuty
- //Serial.print(p_min);
- //Serial.print(" ");
- //Serial.println(s_min);
- //dziesiątki minut
  switch(p_min){
     case 0:
       digitalWrite(p_min_a,LOW);
@@ -153,11 +149,6 @@ void show_min(){
 void show_hr(){
   int p_hr = hr / 10;
   int s_hr = hr % 10;
-  //Serial.print(p_hr);
-  //Serial.print(" ");
-  //Serial.print(s_hr);
-  //Serial.print(":");
-  //dziesiątki godzin
   switch(p_hr){
    case 0:
       digitalWrite(p_hr_a,LOW);
