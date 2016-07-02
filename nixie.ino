@@ -267,6 +267,9 @@ void setup(){
       Serial.println("Zegar nie uruchomiony");
     #endif
   }else{ //jesli zegar dziala odczytujemy z niego aktualny czas 
+    #ifdef DEBUG
+      Serial.println("Zegar dziala!");
+    #endif    
    now = RTC.now();
   }
   mins = now.minute();
@@ -319,5 +322,8 @@ void loop(){
      }
    show_hr();     
    show_min(); 
+    #ifdef DEBUG
+      Serial.println(String(hr) + ":" + String(mins));
+    #endif   
   }
 }
