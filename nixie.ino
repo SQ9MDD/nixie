@@ -8,131 +8,142 @@
  pierwsza cyfra dziesiątki godzin zakres 0-2 2bity
 
  CHANGELOG 
+ 2016.07.02 Dodanie obsługi RTC pierwsza wersja alpha
  2015.12.13 Testy zadziałania, ustawianie godzin
  2014.12.14 Pierwsza wersja programu naliczanie minutowe.
 */
-#define version 1.1                   //wersja softu
-int minute = 0;                       //zmienna przechowuje minuty
+
+#define version 1.2                   //wersja softu
+#define DEBUG
+
+//biblioteki
+#include <Wire.h>
+#include "RTClib.h"             // zegar RTC
+
+int mins = 0;                          //zmienna przechowuje minuty
 int hr = 0;                           //zmienna przechowuje godziny
 long time_to_tick = millis();         //zmienna z czasem odpalenia funkcji naliczania czasu
 
-const int s_minute_a = 2;              //czwarta cyfra najmłodszy bit
-const int s_minute_b = 3;              //czwarta cyfra drugi bit
-const int s_minute_c = 4;              //czwarta cyfra trzeci bit
-const int s_minute_d = 5;              //czwarta cyfra najstarszy bit
-const int p_minute_a = 6;              //trzecia cyfra najmłodszy bit
-const int p_minute_b = 7;              //trzecia cyfra drugi bit
-const int p_minute_c = 8;              //trzecia cyfra najstarszy bit
-const int s_hr_a = 9;                  //druga cyfra najmłodszy bit
-const int s_hr_b = 10;                 //druga cyfra drugi bit
-const int s_hr_c = 11;                 //druga cyfra trzeci bit
-const int s_hr_d = 12;                 //druga cyfra najstarszy bit
-const int p_hr_a = 13;                 //pierwsza cyfra pierwszy bit
-const int p_hr_b = A0;                 //pierwsza cyfra drugi bit
-const int minute_add_pin = A1;         //wejscie do ustawiania minut
-const int hr_add_pin = A2;             //wejscie do ustawiania godzin
+const int s_min_a = 2;                //czwarta cyfra najmłodszy bit
+const int s_min_b = 3;                //czwarta cyfra drugi bit
+const int s_min_c = 4;                //czwarta cyfra trzeci bit
+const int s_min_d = 5;                //czwarta cyfra najstarszy bit
+const int p_min_a = 6;                //trzecia cyfra najmłodszy bit
+const int p_min_b = 7;                //trzecia cyfra drugi bit
+const int p_min_c = 8;                //trzecia cyfra najstarszy bit
+const int s_hr_a = 9;                 //druga cyfra najmłodszy bit
+const int s_hr_b = 10;                //druga cyfra drugi bit
+const int s_hr_c = 11;                //druga cyfra trzeci bit
+const int s_hr_d = 12;                //druga cyfra najstarszy bit
+const int p_hr_a = 13;                //pierwsza cyfra pierwszy bit
+const int p_hr_b = A0;                //pierwsza cyfra drugi bit
+const int min_add_pin = A1;           //wejscie do ustawiania minut
+const int hr_add_pin = A2;            //wejscie do ustawiania godzin
+
+//inicjalizacja bibliotek
+RTC_DS1307 RTC;
 
 //obsługa wyświetlania minut
-void show_minute(){
- int p_minute = minute / 10;           //wyliczam dziesiątki minut
- int s_minute = minute % 10;           //wyliczam minuty
- //Serial.print(p_minute);
+void show_min(){
+ int p_min = mins / 10;                //wyliczam dziesiątki minut
+ int s_min = mins % 10;                //wyliczam minuty
+ //Serial.print(p_min);
  //Serial.print(" ");
- //Serial.println(s_minute);
+ //Serial.println(s_min);
  //dziesiątki minut
- switch(p_minute){
+ switch(p_min){
     case 0:
-      digitalWrite(p_minute_a,LOW);
-      digitalWrite(p_minute_b,LOW);
-      digitalWrite(p_minute_c,LOW);
+      digitalWrite(p_min_a,LOW);
+      digitalWrite(p_min_b,LOW);
+      digitalWrite(p_min_c,LOW);
     break;
     case 1:
-      digitalWrite(p_minute_a,HIGH);
-      digitalWrite(p_minute_b,LOW);
-      digitalWrite(p_minute_c,LOW);   
+      digitalWrite(p_min_a,HIGH);
+      digitalWrite(p_min_b,LOW);
+      digitalWrite(p_min_c,LOW);   
     break;
     case 2:
-      digitalWrite(p_minute_a,LOW);
-      digitalWrite(p_minute_b,HIGH);
-      digitalWrite(p_minute_c,LOW);   
+      digitalWrite(p_min_a,LOW);
+      digitalWrite(p_min_b,HIGH);
+      digitalWrite(p_min_c,LOW);   
     break; 
     case 3:
-      digitalWrite(p_minute_a,HIGH);
-      digitalWrite(p_minute_b,HIGH);
-      digitalWrite(p_minute_c,LOW);   
+      digitalWrite(p_min_a,HIGH);
+      digitalWrite(p_min_b,HIGH);
+      digitalWrite(p_min_c,LOW);   
     break; 
     case 4:
-      digitalWrite(p_minute_a,LOW);
-      digitalWrite(p_minute_b,LOW);
-      digitalWrite(p_minute_c,HIGH);   
+      digitalWrite(p_min_a,LOW);
+      digitalWrite(p_min_b,LOW);
+      digitalWrite(p_min_c,HIGH);   
     break; 
     case 5:
-      digitalWrite(p_minute_a,HIGH);
-      digitalWrite(p_minute_b,LOW);
-      digitalWrite(p_minute_c,HIGH);   
+      digitalWrite(p_min_a,HIGH);
+      digitalWrite(p_min_b,LOW);
+      digitalWrite(p_min_c,HIGH);   
     break;     
  }
  //minuty
- switch(s_minute){
+ switch(s_min){
     case 0:
-      digitalWrite(s_minute_a,LOW);
-      digitalWrite(s_minute_b,LOW);
-      digitalWrite(s_minute_c,LOW);
-      digitalWrite(s_minute_d,LOW);
+      digitalWrite(s_min_a,LOW);
+      digitalWrite(s_min_b,LOW);
+      digitalWrite(s_min_c,LOW);
+      digitalWrite(s_min_d,LOW);
     break;
     case 1:
-      digitalWrite(s_minute_a,HIGH);
-      digitalWrite(s_minute_b,LOW);
-      digitalWrite(s_minute_c,LOW);
-      digitalWrite(s_minute_d,LOW);
+      digitalWrite(s_min_a,HIGH);
+      digitalWrite(s_min_b,LOW);
+      digitalWrite(s_min_c,LOW);
+      digitalWrite(s_min_d,LOW);
     break;
     case 2:
-      digitalWrite(s_minute_a,LOW);
-      digitalWrite(s_minute_b,HIGH);
-      digitalWrite(s_minute_c,LOW);
-      digitalWrite(s_minute_d,LOW);
+      digitalWrite(s_min_a,LOW);
+      digitalWrite(s_min_b,HIGH);
+      digitalWrite(s_min_c,LOW);
+      digitalWrite(s_min_d,LOW);
     break;  
     case 3:
-      digitalWrite(s_minute_a,HIGH);
-      digitalWrite(s_minute_b,HIGH);
-      digitalWrite(s_minute_c,LOW);
-      digitalWrite(s_minute_d,LOW);
+      digitalWrite(s_min_a,HIGH);
+      digitalWrite(s_min_b,HIGH);
+      digitalWrite(s_min_c,LOW);
+      digitalWrite(s_min_d,LOW);
     break;   
     case 4:
-      digitalWrite(s_minute_a,LOW);
-      digitalWrite(s_minute_b,LOW);
-      digitalWrite(s_minute_c,HIGH);
-      digitalWrite(s_minute_d,LOW);
+      digitalWrite(s_min_a,LOW);
+      digitalWrite(s_min_b,LOW);
+      digitalWrite(s_min_c,HIGH);
+      digitalWrite(s_min_d,LOW);
     break;    
     case 5:
-      digitalWrite(s_minute_a,HIGH);
-      digitalWrite(s_minute_b,LOW);
-      digitalWrite(s_minute_c,HIGH);
-      digitalWrite(s_minute_d,LOW);
+      digitalWrite(s_min_a,HIGH);
+      digitalWrite(s_min_b,LOW);
+      digitalWrite(s_min_c,HIGH);
+      digitalWrite(s_min_d,LOW);
     break; 
     case 6:
-      digitalWrite(s_minute_a,LOW);
-      digitalWrite(s_minute_b,HIGH);
-      digitalWrite(s_minute_c,HIGH);
-      digitalWrite(s_minute_d,LOW);
+      digitalWrite(s_min_a,LOW);
+      digitalWrite(s_min_b,HIGH);
+      digitalWrite(s_min_c,HIGH);
+      digitalWrite(s_min_d,LOW);
     break;   
     case 7:
-      digitalWrite(s_minute_a,HIGH);
-      digitalWrite(s_minute_b,HIGH);
-      digitalWrite(s_minute_c,HIGH);
-      digitalWrite(s_minute_d,LOW);
+      digitalWrite(s_min_a,HIGH);
+      digitalWrite(s_min_b,HIGH);
+      digitalWrite(s_min_c,HIGH);
+      digitalWrite(s_min_d,LOW);
     break; 
     case 8:
-      digitalWrite(s_minute_a,LOW);
-      digitalWrite(s_minute_b,LOW);
-      digitalWrite(s_minute_c,LOW);
-      digitalWrite(s_minute_d,HIGH);
+      digitalWrite(s_min_a,LOW);
+      digitalWrite(s_min_b,LOW);
+      digitalWrite(s_min_c,LOW);
+      digitalWrite(s_min_d,HIGH);
     break;
     case 9:
-      digitalWrite(s_minute_a,HIGH);
-      digitalWrite(s_minute_b,LOW);
-      digitalWrite(s_minute_c,LOW);
-      digitalWrite(s_minute_d,HIGH);
+      digitalWrite(s_min_a,HIGH);
+      digitalWrite(s_min_b,LOW);
+      digitalWrite(s_min_c,LOW);
+      digitalWrite(s_min_d,HIGH);
     break;     
  } 
 }
@@ -227,14 +238,16 @@ void show_hr(){
 
 //funkcja setup odpalamy raz przy starcie
 void setup(){
-  //Serial.begin(9600);
-  pinMode(s_minute_a,OUTPUT);
-  pinMode(s_minute_b,OUTPUT);
-  pinMode(s_minute_c,OUTPUT);
-  pinMode(s_minute_d,OUTPUT);
-  pinMode(p_minute_a,OUTPUT);
-  pinMode(p_minute_b,OUTPUT);
-  pinMode(p_minute_c,OUTPUT);
+  #ifdef DEBUG 
+    Serial.begin(9600);
+  #endif
+  pinMode(s_min_a,OUTPUT);
+  pinMode(s_min_b,OUTPUT);
+  pinMode(s_min_c,OUTPUT);
+  pinMode(s_min_d,OUTPUT);
+  pinMode(p_min_a,OUTPUT);
+  pinMode(p_min_b,OUTPUT);
+  pinMode(p_min_c,OUTPUT);
   pinMode(s_hr_a,OUTPUT);
   pinMode(s_hr_a,OUTPUT);
   pinMode(s_hr_b,OUTPUT);
@@ -242,26 +255,40 @@ void setup(){
   pinMode(s_hr_d,OUTPUT);
   pinMode(p_hr_a,OUTPUT);
   pinMode(p_hr_b,OUTPUT);
-  pinMode(minute_add_pin, INPUT_PULLUP); 
+  pinMode(min_add_pin, INPUT_PULLUP); 
   pinMode(hr_add_pin, INPUT_PULLUP);
 
+  //RTC ON
+  Wire.begin();
+  RTC.begin();
+  DateTime now = DateTime(F(__DATE__), F(__TIME__));
+  if (! RTC.isrunning()){
+    #ifdef DEBUG
+      Serial.println("Zegar nie uruchomiony");
+    #endif
+  }else{ //jesli zegar dziala odczytujemy z niego aktualny czas 
+   now = RTC.now();
+  }
+  mins = now.minute();
+  hr = now.hour();
+  
   //
   show_hr();     
-  show_minute(); 
+  show_min(); 
   time_to_tick = millis() + 60000; 
 }
 
 //pętla główna tutaj naliczamy czas, naliczanie minutowe
 void loop(){
   //obsluga klawisza dodawania minut
-  if(digitalRead(minute_add_pin) == LOW){
+  if(digitalRead(min_add_pin) == LOW){
     delay(50);
-    if(digitalRead(minute_add_pin) == LOW){
-      minute++;
-      if(minute >= 60){
-        minute = 0;
+    if(digitalRead(min_add_pin) == LOW){
+      mins++;
+      if(mins >= 60){
+        mins = 0;
       }
-      show_minute();
+      show_min();
       delay(200);
     }
   }
@@ -282,15 +309,15 @@ void loop(){
   //naliczanie czasu
   if(millis() >= time_to_tick){    
      time_to_tick = millis() + 60000;  //ma być 60000
-     minute++;
-     if(minute >= 60){
-       minute = 0;
+     mins++;
+     if(mins >= 60){
+       mins = 0;
        hr++;
        if(hr >= 24){
         hr = 0; 
        }
      }
    show_hr();     
-   show_minute(); 
+   show_min(); 
   }
 }
