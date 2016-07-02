@@ -13,16 +13,17 @@
  2014.12.14 Pierwsza wersja programu naliczanie minutowe.
 */
 
-#define version 1.2                   //wersja softu
+#define version 1.3                   //wersja softu
 #define DEBUG
 
 //biblioteki
 #include <Wire.h>
-#include "RTClib.h"             // zegar RTC
+#include "RTClib.h"                   // zegar RTC
 
-int mins = 0;                          //zmienna przechowuje minuty
+int mins = 0;                         //zmienna przechowuje minuty
 int hr = 0;                           //zmienna przechowuje godziny
 long time_to_tick = millis();         //zmienna z czasem odpalenia funkcji naliczania czasu
+int save_time_flag = 0;               //flaga zapisu czasu do RTC
 
 const int s_min_a = 2;                //czwarta cyfra najmłodszy bit
 const int s_min_b = 3;                //czwarta cyfra drugi bit
@@ -262,10 +263,15 @@ void setup(){
   Wire.begin();
   RTC.begin();
   DateTime now = DateTime(F(__DATE__), F(__TIME__));
+  
+  //unlock only in first programming to set RTC time
+  //RTC.adjust(DateTime(F(__DATE__), F(__TIME__)));
+
   if (! RTC.isrunning()){
     #ifdef DEBUG
       Serial.println("Zegar nie uruchomiony");
     #endif
+    RTC.adjust(DateTime(F(__DATE__), F(__TIME__)));
   }else{ //jesli zegar dziala odczytujemy z niego aktualny czas 
     #ifdef DEBUG
       Serial.println("Zegar dziala!");
@@ -274,8 +280,10 @@ void setup(){
   }
   mins = now.minute();
   hr = now.hour();
-  
-  //
+  // debugowanie
+  #ifdef DEBUG
+    Serial.println(String(hr) + ":" + String(mins));
+  #endif 
   show_hr();     
   show_min(); 
   time_to_tick = millis() + 60000; 
@@ -292,6 +300,7 @@ void loop(){
         mins = 0;
       }
       show_min();
+      save_time_flag = 1;
       delay(200);
     }
   }
@@ -305,6 +314,7 @@ void loop(){
         hr = 0; 
       }
       show_hr();
+      save_time_flag = 1;
       delay(200);
     }
   }
@@ -312,13 +322,23 @@ void loop(){
   //naliczanie czasu
   if(millis() >= time_to_tick){    
      time_to_tick = millis() + 60000;  //ma być 60000
-     mins++;
+     mins++;     
      if(mins >= 60){
        mins = 0;
        hr++;
        if(hr >= 24){
         hr = 0; 
        }
+     }
+     //jesli flaga save_time_flag jest 1 to zapisujemy biezacy czas do RTC i reset flagi
+     if(save_time_flag ==1){
+      DateTime now = RTC.now();
+      RTC.adjust(DateTime(now.year(), now.month(), now.day(), hr, mins, 0));
+      save_time_flag = 0;
+     }else{
+      DateTime now = RTC.now();
+      mins = now.minute();
+      hr = now.hour();
      }
    show_hr();     
    show_min(); 
