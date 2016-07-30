@@ -13,8 +13,9 @@
  2014.12.14 Pierwsza wersja programu naliczanie minutowe.
 */
 
-#define version 1.3                   //wersja softu
+#define version 1.4                   //wersja softu
 #define DEBUG
+//#define SET_TIME                      //automatyczne ustawienie RTC podczas ładowania firmware
 
 //biblioteki
 #include <Wire.h>
@@ -22,7 +23,9 @@
 
 int mins = 0;                         //zmienna przechowuje minuty
 int hr = 0;                           //zmienna przechowuje godziny
-long time_to_tick = millis();         //zmienna z czasem odpalenia funkcji naliczania czasu
+int seconds = 0;
+unsigned long time_to_tick = millis();         //zmienna z czasem odpalenia funkcji naliczania czasu
+unsigned long time_to_save = 0;
 int save_time_flag = 0;               //flaga zapisu czasu do RTC
 
 const int s_min_a = 2;                //czwarta cyfra najmłodszy bit
@@ -228,6 +231,17 @@ void show_hr(){
   }
 }
 
+//zapisywanie czasu do zegara RTC
+void save_time_to_rtc(){
+    if((millis() >= time_to_save) && (save_time_flag == 1)){
+       RTC.adjust(DateTime(2016, 1, 1, hr, mins, seconds));
+       save_time_flag = 0;
+       #ifdef DEBUG
+          Serial.println("Zapisuje nowy czas do zegara");
+       #endif   
+    }
+}
+
 //funkcja setup odpalamy raz przy starcie
 void setup(){
   #ifdef DEBUG 
@@ -254,7 +268,10 @@ void setup(){
   Wire.begin();
   RTC.begin();
   DateTime now = DateTime(F(__DATE__), F(__TIME__));
-  
+
+  #ifdef SET_TIME
+    RTC.adjust(DateTime(F(__DATE__), F(__TIME__)));
+  #endif
   //unlock only in first programming to set RTC time
   //RTC.adjust(DateTime(F(__DATE__), F(__TIME__)));
 
@@ -271,13 +288,14 @@ void setup(){
   }
   mins = now.minute();
   hr = now.hour();
+  seconds = now.second();
   // debugowanie
   #ifdef DEBUG
-    Serial.println(String(hr) + ":" + String(mins));
+    Serial.println(String(hr) + ":" + String(mins) + ":" + String(seconds));
   #endif 
   show_hr();     
   show_min(); 
-  time_to_tick = millis() + 60000; 
+  time_to_tick = millis() + 1000; 
 }
 
 //pętla główna tutaj naliczamy czas, naliczanie minutowe
@@ -287,11 +305,13 @@ void loop(){
     delay(50);
     if(digitalRead(min_add_pin) == LOW){
       mins++;
+      seconds = 0;
       if(mins >= 60){
         mins = 0;
       }
       show_min();
       save_time_flag = 1;
+      time_to_save = millis() + 10000;
       delay(200);
     }
   }
@@ -300,41 +320,42 @@ void loop(){
   if(digitalRead(hr_add_pin) == LOW){
     delay(50);
     if(digitalRead(hr_add_pin) == LOW){
-      hr++;
+      hr++;      
       if(hr >= 24){
         hr = 0; 
       }
       show_hr();
       save_time_flag = 1;
+      time_to_save = millis() + 10000;
       delay(200);
     }
   }
 
   //naliczanie czasu
   if(millis() >= time_to_tick){    
-     time_to_tick = millis() + 60000;  //ma być 60000
-     mins++;     
-     if(mins >= 60){
-       mins = 0;
-       hr++;
-       if(hr >= 24){
-        hr = 0; 
-       }
-     }
-     //jesli flaga save_time_flag jest 1 to zapisujemy biezacy czas do RTC i reset flagi
-     if(save_time_flag ==1){
-      DateTime now = RTC.now();
-      RTC.adjust(DateTime(now.year(), now.month(), now.day(), hr, mins, 0));
-      save_time_flag = 0;
-     }else{
-      DateTime now = RTC.now();
-      mins = now.minute();
-      hr = now.hour();
-     }
-   show_hr();     
-   show_min(); 
+     time_to_tick = millis() + 1000;  //ma być 1000 jedna sekunda
     #ifdef DEBUG
-      Serial.println(String(hr) + ":" + String(mins));
-    #endif   
+      Serial.println(String(hr) + ":" + String(mins) + ":" + String(seconds));
+    #endif       
+     seconds++;
+     if(seconds >= 60){
+      seconds = 0;
+      mins++;     
+      if(mins >= 60){
+        mins = 0;
+        hr++;
+        //rtc korekta czasu zegara z RTC
+          DateTime now = RTC.now();
+          mins = now.minute();
+          hr = now.hour(); 
+          seconds = now.second();       
+        if(hr >= 24){
+          hr = 0; 
+        }
+      }
+        show_hr();     
+        show_min();
+     }  
   }
+  save_time_to_rtc();
 }
