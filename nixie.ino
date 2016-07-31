@@ -1,57 +1,61 @@
 /*
- arduino nixie clock
- (c) Ryszard Labus 2014
- cztero cyfrowy zegar arduino steruje BCD MH74141
- czwarta cyfra minuty zakres 0-9 4 bity
- trzecia cyfra dziesiątki minut zakres 0-5 3 bity
- druga cyfra godziny zakres 0-9 4bity
- pierwsza cyfra dziesiątki godzin zakres 0-2 2bity
+ * 
+ *  arduino nixie clock
+ *  (c) Ryszard Labus 2014 rysieklabus@gmail.com
+ *  cztero cyfrowy zegar arduino steruje BCD MH74141
+ *  czwarta cyfra minuty zakres 0-9 4 bity
+ *  trzecia cyfra dziesiątki minut zakres 0-5 3 bity
+ *  druga cyfra godziny zakres 0-9 4bity
+ *  pierwsza cyfra dziesiątki godzin zakres 0-2 2bity
+ *  
+ *  CHANGELOG 
+ *  2016.07.31 Czyszczenie kodu, poprawki w komentarzach.
+ *  2016.07.30 v.1.4 Poprawki działania RTC 
+ *  2016.07.02 Dodanie obsługi RTC, czyszczenie kodu
+ *  2015.12.13 Testy zadziałania, ustawianie godzin
+ *  2014.12.14 Pierwsza wersja programu naliczanie minutowe.
+ */
 
- CHANGELOG 
- 2016.07.02 Dodanie obsługi RTC, czyszczenie kodu
- 2015.12.13 Testy zadziałania, ustawianie godzin
- 2014.12.14 Pierwsza wersja programu naliczanie minutowe.
-*/
+// definicje
+#define version 1.4                             // wersja softu
+#define DEBUG                                   // uruchamianie debugowania piszemy wszystko po eresie
+//#define SET_TIME                              // automatyczne ustawienie RTC podczas ładowania firmware
 
-#define version 1.4                   //wersja softu
-#define DEBUG
-//#define SET_TIME                      //automatyczne ustawienie RTC podczas ładowania firmware
+// biblioteki
+#include <Wire.h>                               // 
+#include "RTClib.h"                             // zegar RTC
 
-//biblioteki
-#include <Wire.h>
-#include "RTClib.h"                   // zegar RTC
-
-int mins = 0;                         //zmienna przechowuje minuty
-int hr = 0;                           //zmienna przechowuje godziny
+//zmienne pomocnicze tutaj niema nic do konfiguracji
+int mins = 0;                                   // zmienna przechowuje minuty
+int hr = 0;                                     // zmienna przechowuje godziny
 int seconds = 0;
-unsigned long time_to_tick = millis();         //zmienna z czasem odpalenia funkcji naliczania czasu
-unsigned long time_to_save = 0;
-int save_time_flag = 0;               //flaga zapisu czasu do RTC
-
-const int s_min_a = 2;                //czwarta cyfra najmłodszy bit
-const int s_min_b = 3;                //czwarta cyfra drugi bit
-const int s_min_c = 4;                //czwarta cyfra trzeci bit
-const int s_min_d = 5;                //czwarta cyfra najstarszy bit
-const int p_min_a = 6;                //trzecia cyfra najmłodszy bit
-const int p_min_b = 7;                //trzecia cyfra drugi bit
-const int p_min_c = 8;                //trzecia cyfra najstarszy bit
-const int s_hr_a = 9;                 //druga cyfra najmłodszy bit
-const int s_hr_b = 10;                //druga cyfra drugi bit
-const int s_hr_c = 11;                //druga cyfra trzeci bit
-const int s_hr_d = 12;                //druga cyfra najstarszy bit
-const int p_hr_a = 13;                //pierwsza cyfra pierwszy bit
-const int p_hr_b = A0;                //pierwsza cyfra drugi bit
-const int min_add_pin = A1;           //wejscie do ustawiania minut
-const int hr_add_pin = A2;            //wejscie do ustawiania godzin
+unsigned long time_to_tick = millis();          // zmienna z czasem odpalenia funkcji naliczania czasu
+unsigned long time_to_save = 0;                 // opóźnienie zapisu ustawionego czasu do RTC
+int save_time_flag = 0;                         // flaga zapisu czasu do RTC
+const int s_min_a = 2;                          // czwarta cyfra najmłodszy bit
+const int s_min_b = 3;                          // czwarta cyfra drugi bit
+const int s_min_c = 4;                          // czwarta cyfra trzeci bit
+const int s_min_d = 5;                          // czwarta cyfra najstarszy bit
+const int p_min_a = 6;                          // trzecia cyfra najmłodszy bit
+const int p_min_b = 7;                          // trzecia cyfra drugi bit
+const int p_min_c = 8;                          // trzecia cyfra najstarszy bit
+const int s_hr_a = 9;                           // druga cyfra najmłodszy bit
+const int s_hr_b = 10;                          // druga cyfra drugi bit
+const int s_hr_c = 11;                          // druga cyfra trzeci bit
+const int s_hr_d = 12;                          // druga cyfra najstarszy bit
+const int p_hr_a = 13;                          // pierwsza cyfra pierwszy bit
+const int p_hr_b = A0;                          // pierwsza cyfra drugi bit
+const int min_add_pin = A1;                     // wejscie do ustawiania minut
+const int hr_add_pin = A2;                      // wejscie do ustawiania godzin
 
 //inicjalizacja bibliotek
-RTC_DS1307 RTC;
+RTC_DS1307 RTC;                                 // uruchamiam RTC
 
 //obsługa wyświetlania minut
 void show_min(){
- int p_min = mins / 10;                //wyliczam dziesiątki minut
- int s_min = mins % 10;                //wyliczam minuty
- switch(p_min){
+ int p_min = mins / 10;                         // wyliczam dziesiątki minut
+ int s_min = mins % 10;                         // wyliczam minuty
+ switch(p_min){                                 // ustawiamy BCD
     case 0:
       digitalWrite(p_min_a,LOW);
       digitalWrite(p_min_b,LOW);
@@ -234,10 +238,14 @@ void show_hr(){
 //zapisywanie czasu do zegara RTC
 void save_time_to_rtc(){
     if((millis() >= time_to_save) && (save_time_flag == 1)){
-       RTC.adjust(DateTime(2016, 1, 1, hr, mins, seconds));
+      int now_year = now.year();
+      int now_month = now.month();
+      int now_day = now.day();
+       RTC.adjust(DateTime(now_year, now_month, now_day, hr, mins, seconds));     //datę dowolnie? to poprawić jeszcze
        save_time_flag = 0;
+       //debugowanie piszemy co się dzieje
        #ifdef DEBUG
-          Serial.println("Zapisuje nowy czas do zegara");
+          Serial.println("Zapisalem nowy czas do zegara RTC");
        #endif   
     }
 }
@@ -305,13 +313,13 @@ void loop(){
     delay(50);
     if(digitalRead(min_add_pin) == LOW){
       mins++;
-      seconds = 0;
+      seconds = 0;                                // zerowanie sekund podczas ustawiania minut
       if(mins >= 60){
         mins = 0;
       }
       show_min();
-      save_time_flag = 1;
-      time_to_save = millis() + 10000;
+      save_time_flag = 1;                         // po uzyciu klawisza ustawiam flage zapisu do RTC
+      time_to_save = millis() + 10000;            // ustaw opóźnienie czasu zapisu do RT (10sec) 
       delay(200);
     }
   }
@@ -325,15 +333,16 @@ void loop(){
         hr = 0; 
       }
       show_hr();
-      save_time_flag = 1;
-      time_to_save = millis() + 10000;
-      delay(200);
+      save_time_flag = 1;                         // po uzyciu klawisza ustawiam flage zapisu do RTC
+      time_to_save = millis() + 10000;            // ustaw opóźnienie czasu zapisu do RT (10sec) 
+      delay(200); 
     }
   }
 
   //naliczanie czasu
   if(millis() >= time_to_tick){    
      time_to_tick = millis() + 1000;  //ma być 1000 jedna sekunda
+    //debugowanie pokaz czas co sekunde 
     #ifdef DEBUG
       Serial.println(String(hr) + ":" + String(mins) + ":" + String(seconds));
     #endif       
@@ -344,7 +353,7 @@ void loop(){
       if(mins >= 60){
         mins = 0;
         hr++;
-        //rtc korekta czasu zegara z RTC
+        //rtc korekta czasu zegara z RTC co godzinę robimy korektę naliczania czasu z RTC
           DateTime now = RTC.now();
           mins = now.minute();
           hr = now.hour(); 
