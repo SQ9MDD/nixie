@@ -236,8 +236,10 @@ void show_hr(){
 }
 
 //zapisywanie czasu do zegara RTC
+
 void save_time_to_rtc(){
     if((millis() >= time_to_save) && (save_time_flag == 1)){
+     DateTime now = RTC.now();
       int now_year = now.year();
       int now_month = now.month();
       int now_day = now.day();
@@ -249,6 +251,7 @@ void save_time_to_rtc(){
        #endif   
     }
 }
+
 
 //funkcja setup odpalamy raz przy starcie
 void setup(){
@@ -368,3 +371,4 @@ void loop(){
   }
   save_time_to_rtc();
 }
+
